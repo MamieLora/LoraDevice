@@ -1,0 +1,12 @@
+[544:0604/103606:ERROR:ipc_channel_win.cc(136)] pipe error: 109
+[544:0604/103606:WARNING:raw_channel_win.cc(471)] WriteFile: Le canal de communication est sur le point d’être fermé. (0xE8)
+[544:0604/103606:WARNING:channel.cc(553)] Failed to send message to ack remove remote endpoint (local ID 2147483649, remote ID 3)
+[544:0604/103606:WARNING:channel.cc(320)] RawChannel write error
+[13108:0604/103620:ERROR:ipc_channel_win.cc(136)] pipe error: 109
+[13108:0604/103620:WARNING:raw_channel_win.cc(471)] WriteFile: Le canal de communication est sur le point d’être fermé. (0xE8)
+[13108:0604/103620:WARNING:channel.cc(553)] Failed to send message to ack remove remote endpoint (local ID 2147483649, remote ID 3)
+[13108:0604/103620:WARNING:channel.cc(320)] RawChannel write error
+[7176:0604/103635:WARNING:raw_channel_win.cc(471)] WriteFile: Le canal de communication est sur le point d’être fermé. (0xE8)
+[7176:0604/103635:WARNING:channel.cc(553)] Failed to send message to ack remove remote endpoint (local ID 2147483649, remote ID 3)
+[7176:0604/103635:WARNING:channel.cc(320)] RawChannel write error
+[12572:0604/103635:ERROR:ipc_channel_win.cc(136)] pipe error: 109
