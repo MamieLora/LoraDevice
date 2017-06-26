@@ -58,6 +58,11 @@ void BLUE() {
  digitalWrite(LED_GREEN, HIGH);
  digitalWrite(LED_BLUE, LOW);
 }
+void OFF() {
+ digitalWrite(LED_RED, HIGH);
+ digitalWrite(LED_GREEN, HIGH);
+ digitalWrite(LED_BLUE, HIGH);
+}
 void LED_setup() {
  pinMode(LED_RED, OUTPUT);
  pinMode(LED_GREEN, OUTPUT);
@@ -158,32 +163,82 @@ void loop()
       break;
     }
 
+    const uint8_t _mamie_lora_private_key[] = {72, 73, 27, 37};
+
     const uint16_t receive_buffer_max_size = 128;
     uint8_t receive_buffer[receive_buffer_max_size];
 
-    uint16_t receive_return_code = LoRaBee.receive(receive_buffer, 64);
+    uint16_t receive_return_code = LoRaBee.receive(receive_buffer, 16);
     if (receive_return_code != 0)
     {
-      for (int i = 0; i<receive_return_code; i++) {
-
-        debugSerial.print("Received int: ");
-        debugSerial.print(receive_buffer[i]);
-        debugSerial.println(); 
+        // dump frame for debug
+        for (int i = 0; i<receive_return_code; i++) {
+            debugSerial.print("Received int: ");
+            debugSerial.print(receive_buffer[i]);
+            debugSerial.println(); 
         
-        char buf[10];
-        itoa (receive_buffer[i], buf, 10);
-        debugSerial.print("Byte ");
-        debugSerial.print(i);
-        debugSerial.print(": ");
-        debugSerial.print(buf);
-        debugSerial.println();  
+            char buf[10];
+            itoa (receive_buffer[i], buf, 10);
+            debugSerial.print("Byte ");
+            debugSerial.print(i);
+            debugSerial.print(": ");
+            debugSerial.print(buf);
+            debugSerial.println();        
+        }
+        if (receive_return_code == 5) {
+          // may by a MamieLora frame
+
+          // check if we got the magic key
+          bool received_magic_key = true;
+          for (int i=0; i<4; i++) {
+            if (_mamie_lora_private_key[i] != receive_buffer[i]) {
+              received_magic_key = false;
+              break;
+            }
+          }
+
+          if (received_magic_key)
+          {
+            const uint8_t command_byte = receive_buffer[4];
+
+            switch (command_byte) {
+              case 1: {
+                RED();
+                debugSerial.println("Got valid RED command.");
+                break;
+              }
+
+              case 2: {
+                BLUE();
+                debugSerial.println("Got valid BLUE command.");
+                break;
+              }
+
+              case 3: {
+                GREEN();
+                debugSerial.println("Got valid GREEN command.");
+                break;
+              }
+
+              case 0: {
+                OFF();
+                debugSerial.println("Got valid OFF command.");
+                break;
+              }
+
+              default: {
+                debugSerial.print ("Received invalid command number: ");
+                debugSerial.print (command_byte);
+                debugSerial.println();
+                break;
+              }
+            }                                                                        
+    
+        } else {
+          debugSerial.println("Frame does not contain magi key. Do not executed command");
+        }
       }
-      GREEN();
-      debugSerial.println("Received some bytes..."); 
-    } else {
-      RED();
-      debugSerial.println("Received nothing!"); 
-    }
+    }     
     /*
      * S-ORBA65630% curl -X POST --header 'Content-Type:application/json;charset=UTF-8' --header 'Accept: application/json' --header 'X-API-KEY: 6e1eefa3b6bc4fadb9158bbd2bbf587c' -d '{
   "data": "02",
