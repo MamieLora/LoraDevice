@@ -9,6 +9,27 @@ import sys
 import time
 
 import argparse
+import logging
+
+import logging
+
+# create logger
+logger = logging.getLogger('MamieLoraLogger')
+logger.setLevel(logging.DEBUG)
+
+# create console handler and set level to debug
+ch = logging.StreamHandler()
+ch.setLevel(logging.ERROR)
+
+# create formatter
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+# add formatter to ch
+ch.setFormatter(formatter)
+
+# add ch to logger
+logger.addHandler(ch)
+
 
 from oauth2client import client
 from googleapiclient import sample_tools
@@ -61,6 +82,8 @@ def updateMamieLoraDeviceStatus (device_status):
     global _device_status_to_remote_bin_value_table
     
     url = 'https://lpwa.liveobjects.orange-business.com/api/v0/vendors/lora/devices/0102030405060789/commands'
+    # url = 'http://lpwa.liveobjects.orange-business.com/api/v0/vendors/lora/devices/0102030405060789/commands'
+    
     headers = {}
     
     headers["Content-Type"] = "application/json;charset=UTF-8"
@@ -68,7 +91,7 @@ def updateMamieLoraDeviceStatus (device_status):
     headers["X-API-KEY"] = "6e1eefa3b6bc4fadb9158bbd2bbf587c"
     
     if not device_status in _device_status_to_remote_bin_value_table:
-        print('Internal error. Status "%s" unknown' % device_status)
+        logger.critical('Internal error. Status "%s" unknown' % device_status)
         return
     
     remote_bin_value_for_status = _device_status_to_remote_bin_value_table[device_status]
@@ -100,22 +123,22 @@ def updateMamieLoraDeviceStatus (device_status):
         # install it
         urllib.request.install_opener(opener)
         
-        req = urllib.request.Request(url=url, headers=headers, data=request_body, method='GET')
+        req = urllib.request.Request(url=url, headers=headers, data=request_body, method='POST')
 
         response = urllib.request.urlopen(req, timeout=10)
         b_data = response.read()
         response_data = b_data.decode('utf-8')
         
-        print (response_data)
+        logger.debug (response_data)
         
     except urllib.error.HTTPError as e:
-        print (e)
-        print('The server couldn\'t fulfill the request.')
-        print('Error code: ', e.code)
+        logger.error (e)
+        logger.error('The server couldn\'t fulfill the request.')
+        logger.error('Error code: ', e.code)
   
     except urllib.error.URLError as e:
-        print('We failed to reach a server.')
-        print('Reason: ', e.reason)
+        logger.error('We failed to reach a server.')
+        logger.error('Reason: ', e.reason)
 
 
 def main(argv):
@@ -137,22 +160,28 @@ def main(argv):
     
     if args.debug:
         activate_http_debug()
+        ch.setLevel(logging.DEBUG)
+        # 'application' code
+        logger.debug('Debug level activated')
+
         
     if args.proxy_host:
         set_http_proxy_configuration (args.proxy_host, args.proxy_port)
-    
-    updateMamieLoraDeviceStatus ('BLUE')
-    sys.exit(1)
-    time.sleep(4000)
+
+    logger.debug('setting to green')    
+    updateMamieLoraDeviceStatus ('GREEN')
+    time.sleep(1)
+    logger.debug('setting to red')        
     updateMamieLoraDeviceStatus ('RED')
-    sys.exit(1)
+    time.sleep(1)
+    logger.debug('setting to OFF')      
+    updateMamieLoraDeviceStatus ('OFF')    
 
     try:
-        page_token = None
-        
+
         
         now = datetime.datetime.utcnow().isoformat() + 'Z' # 'Z' indicates UTC time
-        print('Getting the upcoming 10 events')
+        logger.debug('Getting the upcoming 10 events')
         eventsResult = service.events().list(
             calendarId='primary', timeMin=now, maxResults=10, singleEvents=True,
             orderBy='startTime').execute()
@@ -160,33 +189,33 @@ def main(argv):
         events = eventsResult.get('items', [])
 
         if not events:
-            print('No upcoming events found.')
+            logger.debug('No upcoming events found.')
         for event in events:
             start = event['start'].get('dateTime', event['start'].get('date'))
-            print(start, event['summary'])
-
-        
-        while True:
-            calendar_list = service.calendarList().list(
-                pageToken=page_token).execute()
-            for calendar_list_entry in calendar_list['items']:
-                
-                print(calendar_list_entry['summary'])
-                
-                calendarId = calendar_list_entry['id']
-                if calendarId == _calendar_id:
-                    _found_calendar = calendar_list_entry
-                    break
-                    
-                
-            page_token = calendar_list.get('nextPageToken')
-            if not page_token:
-                break
-        
-        _found_calendar
+            logger.info(start, event['summary'])
+            
+#         page_token = None
+#         while True:
+#             calendar_list = service.calendarList().list(
+#                 pageToken=page_token).execute()
+#             for calendar_list_entry in calendar_list['items']:
+#                 
+#                 print(calendar_list_entry['summary'])
+#                 
+#                 calendarId = calendar_list_entry['id']
+#                 if calendarId == _calendar_id:
+#                     _found_calendar = calendar_list_entry
+#                     break
+#                     
+#                 
+#             page_token = calendar_list.get('nextPageToken')
+#             if not page_token:
+#                 break
+#         
+#         _found_calendar
         
     except client.AccessTokenRefreshError:
-        print('The credentials have been revoked or expired, please re-run'
+        logger.critical('The credentials have been revoked or expired, please re-run'
               'the application to re-authorize.')
 
 if __name__ == '__main__':
