@@ -82,6 +82,8 @@ void setup()
 
   LED_setup();
 
+  BLUE();
+
 }
 
 void setupLoRa(){
@@ -122,7 +124,7 @@ void setupLoRaOTAA(){
 
 void loop()
 {
-  BLUE();
+
   String reading = getTemperature();
 
     switch (LoRaBee.send(1, (uint8_t*)reading.c_str(), reading.length()))

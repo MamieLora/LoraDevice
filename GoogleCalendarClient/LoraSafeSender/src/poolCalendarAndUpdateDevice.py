@@ -168,31 +168,52 @@ def main(argv):
     if args.proxy_host:
         set_http_proxy_configuration (args.proxy_host, args.proxy_port)
 
-    logger.debug('setting to green')    
-    updateMamieLoraDeviceStatus ('GREEN')
-    time.sleep(1)
-    logger.debug('setting to red')        
-    updateMamieLoraDeviceStatus ('RED')
-    time.sleep(1)
-    logger.debug('setting to OFF')      
-    updateMamieLoraDeviceStatus ('OFF')    
+    logger.debug('setting to initial state = BLUE')    
+    updateMamieLoraDeviceStatus ('BLUE')
+
+    if False:
+        logger.debug('setting to green')    
+        updateMamieLoraDeviceStatus ('GREEN')
+        time.sleep(1)
+        logger.debug('setting to red')        
+        updateMamieLoraDeviceStatus ('RED')
+        time.sleep(1)
+        logger.debug('setting to OFF')      
+        updateMamieLoraDeviceStatus ('OFF')
+ 
 
     try:
+        
+        while True:
 
         
-        now = datetime.datetime.utcnow().isoformat() + 'Z' # 'Z' indicates UTC time
-        logger.debug('Getting the upcoming 10 events')
-        eventsResult = service.events().list(
-            calendarId='primary', timeMin=now, maxResults=10, singleEvents=True,
-            orderBy='startTime').execute()
-            
-        events = eventsResult.get('items', [])
+            now = datetime.datetime.utcnow().isoformat() + 'Z' # 'Z' indicates UTC time
+            logger.debug('Getting current active event')
+            eventsResult = service.events().list(
+                calendarId='primary', timeMax=now, maxResults=1, singleEvents=True,
+                orderBy='startTime').execute()
+                
+            events = eventsResult.get('items', [])
 
-        if not events:
-            logger.debug('No upcoming events found.')
-        for event in events:
-            start = event['start'].get('dateTime', event['start'].get('date'))
-            logger.info(start, event['summary'])
+            if not events:
+                logger.info('Currently no appointment.')
+                updateMamieLoraDeviceStatus ('BLUE') 
+            for event in events:
+                start = event['start'].get('dateTime', event['start'].get('date'))
+                description = event['description']
+                logger.info(start)
+                logger.info(description)
+                # check if it is a certified appointment
+                if 'keeex' in description:
+                    logger.info ('KeeeX validated appointment')
+                    updateMamieLoraDeviceStatus ('GREEN')
+                else:
+                    logger.info ('Not a KeeeX validated appointment')
+                    updateMamieLoraDeviceStatus ('GREEN')                    
+                    
+                    
+                
+            time.sleep(20)
             
 #         page_token = None
 #         while True:
