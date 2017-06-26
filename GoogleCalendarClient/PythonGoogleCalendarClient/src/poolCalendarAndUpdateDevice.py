@@ -1,24 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright 2014 Google Inc. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
 """Simple command-line sample for the Calendar API.
 Command-line application that retrieves the list of the user's calendars."""
 
 import sys
+import time
+
+import argparse
 
 from oauth2client import client
 from googleapiclient import sample_tools
@@ -27,6 +17,14 @@ import datetime
 
 _calendar_id = 'mamie.lora06@gmail.com'
 _found_calendar = None
+
+_mamie_lora_private_key = '%x%x%x%x' % (72, 73, 27, 37)
+_device_status_to_remote_bin_value_table = {
+    'RED': '01',
+    'BLUE': '02',
+    'GREEN': '03',
+    'OFF': '00'
+}
 
 '''
 ########################################"
@@ -60,6 +58,8 @@ def set_http_proxy_configuration (proxy_host, proxy_port = None):
 
 def updateMamieLoraDeviceStatus (device_status):
     
+    global _device_status_to_remote_bin_value_table
+    
     url = 'https://lpwa.liveobjects.orange-business.com/api/v0/vendors/lora/devices/0102030405060789/commands'
     headers = {}
     
@@ -67,8 +67,14 @@ def updateMamieLoraDeviceStatus (device_status):
     headers["Accept"] = "application/json"
     headers["X-API-KEY"] = "6e1eefa3b6bc4fadb9158bbd2bbf587c"
     
+    if not device_status in _device_status_to_remote_bin_value_table:
+        print('Internal error. Status "%s" unknown' % device_status)
+        return
+    
+    remote_bin_value_for_status = _device_status_to_remote_bin_value_table[device_status]
+    
     json_body_arg = {
-        "data": "02",
+        "data": "%s%s" % (_mamie_lora_private_key, remote_bin_value_for_status),
         "port": "1",
         "confirmed": "false"        
     }
@@ -102,12 +108,6 @@ def updateMamieLoraDeviceStatus (device_status):
         
         print (response_data)
         
-        #Load json with request text
-        jsonData = json.loads(response_data)
-        
-        if  'token' in jsonData:
-            _keeex_current_auth_token = jsonData["token"]
-
     except urllib.error.HTTPError as e:
         print (e)
         print('The server couldn\'t fulfill the request.')
@@ -115,7 +115,7 @@ def updateMamieLoraDeviceStatus (device_status):
   
     except urllib.error.URLError as e:
         print('We failed to reach a server.')
-        print('Reason: ', e.reason)   
+        print('Reason: ', e.reason)
 
 
 def main(argv):
@@ -123,6 +123,38 @@ def main(argv):
     service, flags = sample_tools.init(
         argv, 'calendar', 'v3', __doc__, __file__,
         scope='https://www.googleapis.com/auth/calendar.readonly')
+    
+    parser = argparse.ArgumentParser()
+    
+    
+#     parser.add_argument("--year", type=int, action="store", help="year to consider for digest (YYYY). Defaults to current year", default=current_year)
+#     parser.add_argument("--week_number", type=lambda x: _check_week_number_arg(parser, x), required=True, help="iso week number to digest")
+#     parser.add_argument("--content", choices=['document', 'discussion', 'post', 'update'], help="type of content to retreive", default=_defaults['contentTypeList'])
+#     parser.add_argument("--user", help="username to use to connect to Plazza", default=_defaults['jiveUser']) 
+#     parser.add_argument("--password", help="user password to use to connect to Plazza", default=_defaults['jivePassword']) 
+#     parser.add_argument("--tag", dest='tag_list', action='append', help="tag for content filtering", default=[])
+#     parser.add_argument("--url_quoted_tag", dest='url_quoted_tag_list', action='append', help="same as --tag, but passed as url quoted string", default=[])
+#     parser.add_argument("--digest_classification_tag", dest='digest_classification_tag_specification_list', action='append', help="tag for content display classification (<=label> suffix display the <label> in classification)", default=[])
+#     parser.add_argument("--digest_classification_url_quoted_tag", dest='digest_classification_url_quoted_tag_specification_list', action='append', help="same as --digest_classification_tag, but passed as url quoted string", default=[])
+#     parser.add_argument("--classification_print_template", type=str, action="store", help="pattern to use for printing classifier. Defaults to %s" % _classifier_printing_string_template, default=_defaults['classification_print_template'])
+#     parser.add_argument("--with_content_body", action="store_true", help='tell to print also the body of the retrieved content')
+    parser.add_argument("--proxy_host", type=str, help='proxy hostname if a HTTP proxy has to be used')
+    parser.add_argument("--proxy_port", type=int, help='proxy port number associated with --proxy_host is specified')    
+    parser.add_argument("--debug", action='store_true')
+    
+    args = parser.parse_args()
+    
+    if args.debug:
+        activate_http_debug()
+        
+    if args.proxy_host:
+        set_http_proxy_configuration (args.proxy_host, args.proxy_port)
+    
+    updateMamieLoraDeviceStatus ('BLUE')
+    sys.exit(1)
+    time.sleep(4000)
+    updateMamieLoraDeviceStatus ('RED')
+    sys.exit(1)
 
     try:
         page_token = None
