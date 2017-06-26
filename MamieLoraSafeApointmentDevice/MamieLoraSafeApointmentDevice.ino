@@ -164,6 +164,20 @@ void loop()
     uint16_t receive_return_code = LoRaBee.receive(receive_buffer, 64);
     if (receive_return_code != 0)
     {
+      for (int i = 0; i<receive_return_code; i++) {
+
+        debugSerial.print("Received int: ");
+        debugSerial.print(receive_buffer[i]);
+        debugSerial.println(); 
+        
+        char buf[10];
+        itoa (receive_buffer[i], buf, 10);
+        debugSerial.print("Byte ");
+        debugSerial.print(i);
+        debugSerial.print(": ");
+        debugSerial.print(buf);
+        debugSerial.println();  
+      }
       GREEN();
       debugSerial.println("Received some bytes..."); 
     } else {
