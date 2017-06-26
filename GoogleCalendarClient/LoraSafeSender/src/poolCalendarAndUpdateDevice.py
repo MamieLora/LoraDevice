@@ -119,18 +119,19 @@ def updateMamieLoraDeviceStatus (device_status):
 
 
 def main(argv):
-    # Authenticate and construct service.
-    service, flags = sample_tools.init(
-        argv, 'calendar', 'v3', __doc__, __file__,
-        scope='https://www.googleapis.com/auth/calendar.readonly')
+
     
-    parser = argparse.ArgumentParser()
-    
-    toto
+    parser = argparse.ArgumentParser(add_help=False)
     
     parser.add_argument("--proxy_host", type=str, help='proxy hostname if a HTTP proxy has to be used')
     parser.add_argument("--proxy_port", type=int, help='proxy port number associated with --proxy_host is specified')    
     parser.add_argument("--debug", action='store_true')
+    
+    # Authenticate and construct service.
+    service, flags = sample_tools.init(
+        argv, 'calendar', 'v3', __doc__, __file__,
+        scope='https://www.googleapis.com/auth/calendar.readonly',
+        parents=[parser]) 
     
     args = parser.parse_args()
     
