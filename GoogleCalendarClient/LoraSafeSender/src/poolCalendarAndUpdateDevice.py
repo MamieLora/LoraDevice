@@ -220,8 +220,9 @@ def main(argv):
         
         while True:
 
-            dt_now = datetime.datetime.utcnow()
-            now = dt_now.isoformat() + 'Z' # 'Z' indicates UTC time
+            dt_utc_now = datetime.datetime.utcnow()
+            dt_now = datetime.datetime.now()
+            now = dt_utc_now.isoformat() + 'Z' # 'Z' indicates UTC time
             logger.debug('Getting current active event')
             eventsResult = service.events().list(
                 calendarId='primary', timeMin=now, maxResults=1, singleEvents=True,
@@ -235,11 +236,15 @@ def main(argv):
             for event in events:
                 iso_start = event['start'].get('dateTime', event['start'].get('date'))
                 iso_end = event['end'].get('dateTime', event['end'].get('date'))
+                description = event.get('description', "")
+                summary = event.get('summary', "")
                 
                 local_time_start_dt = isoDateToLocalDatetime(iso_start)
                 local_time_end_dt = isoDateToLocalDatetime(iso_end)
-                description = event['description']
+                
                 logger.info('Next appointment start: %s' % iso_start)
+                logger.info('Next appointment end: %s' % iso_end)
+                logger.info('Appointment summary: %s' % summary)
                 logger.info('Appointment description: %s' % description)
                 
                 # check if we are currently in an appointment
@@ -248,17 +253,20 @@ def main(argv):
                 
                 if (later_than_start and earlier_than_end):
                     # the appointment is active
+                    logger.info ('This appointment is active')
                 
                     # check if it is a certified appointment
                     if 'keeex' in description:
                         logger.info ('KeeeX validated appointment')
                         updateMamieLoraDeviceStatus ('GREEN')
                     else:
-                        logger.info ('Not a KeeeX validated appointment')
+                        logger.critical ('================================================')
+                        logger.critical ('ALERT!! Not a KeeeX validated appointment')
+                        logger.critical ('================================================')
                         updateMamieLoraDeviceStatus ('RED')
                 else:
                                       
-                    logger.info ('Not a KeeeX validated appointment')
+                    logger.info ('Currently no active appointment')
                     updateMamieLoraDeviceStatus ('BLUE')
                     
                 
