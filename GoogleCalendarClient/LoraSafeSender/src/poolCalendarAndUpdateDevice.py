@@ -76,6 +76,28 @@ def set_http_proxy_configuration (proxy_host, proxy_port = None):
         proxy_url = 'http://%s:8080/' % proxy_host
         
     _urllib_proxy_specification = {'http': proxy_url, 'https': proxy_url }
+    
+def isoDateToZonedDatetime (isodate):
+    
+    gmtime_part = isodate[:19]
+    zone_delta_H = isodate[19:22]
+    zone_delta_M = isodate[23:]
+    
+    strptime_compatible_date = gmtime_part + zone_delta_H + zone_delta_M
+    
+    dt = datetime.datetime.strptime(strptime_compatible_date, '%Y-%m-%dT%H:%M:%S%z')
+    
+    return dt
+
+def isoDateToLocalDatetime (isodate):
+    
+    gmtime_part = isodate[:19]
+    
+    dt = datetime.datetime.strptime(gmtime_part, '%Y-%m-%dT%H:%M:%S')
+    
+    return dt
+    
+    
 
 def updateMamieLoraDeviceStatus (device_status):
     
@@ -186,11 +208,11 @@ def main(argv):
         
         while True:
 
-        
-            now = datetime.datetime.utcnow().isoformat() + 'Z' # 'Z' indicates UTC time
+            dt_now = datetime.datetime.utcnow()
+            now = dt_now.isoformat() + 'Z' # 'Z' indicates UTC time
             logger.debug('Getting current active event')
             eventsResult = service.events().list(
-                calendarId='primary', timeMax=now, maxResults=1, singleEvents=True,
+                calendarId='primary', timeMin=now, maxResults=1, singleEvents=True,
                 orderBy='startTime').execute()
                 
             events = eventsResult.get('items', [])
@@ -199,41 +221,37 @@ def main(argv):
                 logger.info('Currently no appointment.')
                 updateMamieLoraDeviceStatus ('BLUE') 
             for event in events:
-                start = event['start'].get('dateTime', event['start'].get('date'))
+                iso_start = event['start'].get('dateTime', event['start'].get('date'))
+                iso_end = event['end'].get('dateTime', event['end'].get('date'))
+                
+                local_time_start_dt = isoDateToLocalDatetime(iso_start)
+                local_time_end_dt = isoDateToLocalDatetime(iso_end)
                 description = event['description']
-                logger.info(start)
-                logger.info(description)
-                # check if it is a certified appointment
-                if 'keeex' in description:
-                    logger.info ('KeeeX validated appointment')
-                    updateMamieLoraDeviceStatus ('GREEN')
+                logger.info('Next appointment start: %s' % iso_start)
+                logger.info('Appointment description: %s' % description)
+                
+                # check if we are currently in an appointment
+                later_than_start = local_time_start_dt < dt_now
+                earlier_than_end = dt_now < local_time_end_dt
+                
+                if (later_than_start and earlier_than_end):
+                    # the appointment is active
+                
+                    # check if it is a certified appointment
+                    if 'keeex' in description:
+                        logger.info ('KeeeX validated appointment')
+                        updateMamieLoraDeviceStatus ('GREEN')
+                    else:
+                        logger.info ('Not a KeeeX validated appointment')
+                        updateMamieLoraDeviceStatus ('RED')
                 else:
+                                      
                     logger.info ('Not a KeeeX validated appointment')
-                    updateMamieLoraDeviceStatus ('GREEN')                    
-                    
+                    updateMamieLoraDeviceStatus ('BLUE')
                     
                 
             time.sleep(20)
             
-#         page_token = None
-#         while True:
-#             calendar_list = service.calendarList().list(
-#                 pageToken=page_token).execute()
-#             for calendar_list_entry in calendar_list['items']:
-#                 
-#                 print(calendar_list_entry['summary'])
-#                 
-#                 calendarId = calendar_list_entry['id']
-#                 if calendarId == _calendar_id:
-#                     _found_calendar = calendar_list_entry
-#                     break
-#                     
-#                 
-#             page_token = calendar_list.get('nextPageToken')
-#             if not page_token:
-#                 break
-#         
-#         _found_calendar
         
     except client.AccessTokenRefreshError:
         logger.critical('The credentials have been revoked or expired, please re-run'
