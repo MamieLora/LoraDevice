@@ -11,8 +11,6 @@ import time
 import argparse
 import logging
 
-import logging
-
 # create logger
 logger = logging.getLogger('MamieLoraLogger')
 logger.setLevel(logging.DEBUG)
@@ -56,6 +54,7 @@ import http.client
 import urllib.request
 import json
 
+
 _debug = False
 def activate_http_debug ():
     global _debug
@@ -98,8 +97,16 @@ def isoDateToLocalDatetime (isodate):
     return dt
     
     
-
+_no_lora_update = False
 def updateMamieLoraDeviceStatus (device_status):
+    
+    global _no_lora_update
+    
+    if _no_lora_update:
+        logger.info ('SKIP lora update command: %s' % device_status)
+        return
+    
+    logger.info ('Perform lora update command to: %s' % device_status)
     
     global _device_status_to_remote_bin_value_table
     
@@ -164,13 +171,15 @@ def updateMamieLoraDeviceStatus (device_status):
 
 
 def main(argv):
-
     
+    global _no_lora_update
+
     parser = argparse.ArgumentParser(add_help=False)
     
     parser.add_argument("--proxy_host", type=str, help='proxy hostname if a HTTP proxy has to be used')
     parser.add_argument("--proxy_port", type=int, help='proxy port number associated with --proxy_host is specified')    
     parser.add_argument("--debug", action='store_true')
+    parser.add_argument("--no_lora_update", action='store_true')
     
     # Authenticate and construct service.
     service, flags = sample_tools.init(
@@ -189,6 +198,9 @@ def main(argv):
         
     if args.proxy_host:
         set_http_proxy_configuration (args.proxy_host, args.proxy_port)
+        
+    if args.no_lora_update:
+        _no_lora_update = True
 
     logger.debug('setting to initial state = BLUE')    
     updateMamieLoraDeviceStatus ('BLUE')
