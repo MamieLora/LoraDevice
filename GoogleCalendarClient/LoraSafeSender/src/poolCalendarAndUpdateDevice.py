@@ -55,11 +55,11 @@ import urllib.request
 import json
 
 
-_debug = False
+_http_debug = False
 def activate_http_debug ():
-    global _debug
+    global _http_debug
     
-    _debug = True
+    _http_debug = True
     
     http.client.HTTPConnection.debuglevel = 1
     http.client.HTTPSConnection.debuglevel = 1
@@ -138,7 +138,7 @@ def updateMamieLoraDeviceStatus (device_status):
     
     try:
         
-        if _debug:
+        if _http_debug:
             http_debug_level_flag = 1
         else:
             http_debug_level_flag = 0
@@ -179,6 +179,7 @@ def main(argv):
     parser.add_argument("--proxy_host", type=str, help='proxy hostname if a HTTP proxy has to be used')
     parser.add_argument("--proxy_port", type=int, help='proxy port number associated with --proxy_host is specified')    
     parser.add_argument("--debug", action='store_true')
+    parser.add_argument("--http_debug", action='store_true')
     parser.add_argument("--no_lora_update", action='store_true')
     
     # Authenticate and construct service.
@@ -189,11 +190,13 @@ def main(argv):
     
     args = parser.parse_args()
     
-    if args.debug:
+    if args.http_debug:
         activate_http_debug()
+        
+    if args.debug:
         ch.setLevel(logging.DEBUG)
         # 'application' code
-        logger.debug('Debug level activated')
+        logger.debug('Debug level activated')        
 
         
     if args.proxy_host:
